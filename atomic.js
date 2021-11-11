@@ -205,7 +205,7 @@ var Atomic = (function(document, window) {
         if (options) {
             Object.keys(options).forEach(function(k) {
                 this._options[k] = options[k];
-            });
+            }.bind(this));
         }
 
         // Initialize canvas
