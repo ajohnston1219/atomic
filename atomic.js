@@ -11,42 +11,9 @@ var Atomic = (function(document, window) {
             };
     })();
 
-    var container = document.getElementById('atomic');
-    var canvas = document.createElement('canvas');
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    container.appendChild(canvas);
-    var ctx = canvas.getContext('2d');
-
-    var xmax = canvas.width;
-    var ymax = canvas.height;
-    var clicked = false;
-    var moving = false;
-    var mousepos = [0.0, 0.0];
-
     function color2Str(rgba) {
         return 'rgba(' + rgba[0] + ',' + rgba[1] + ',' + rgba[2] + ',' + rgba[3] + ')';
     }
-
-    document.addEventListener('mousemove', function(e) {
-        moving = true;
-        if (e.originalEvent) {
-            e = e.originalEvent;
-        }
-        var rect = canvas.getBoundingClientRect();
-        mousepos[0] = e.clientX - rect.left;
-        mousepos[1] = e.clientY - rect.top;
-        setTimeout(function() {
-            moving = false;
-        }, 1000);
-    });
-
-    document.addEventListener('click', function(e) {
-        var rect = canvas.getBoundingClientRect();
-        mousepos[0] = e.clientX - rect.left;
-        mousepos[1] = e.clientY - rect.top;
-        clicked = true;
-    });
 
     function Circle(r, x, y, xdot, ydot, options) {
         this._r = r;
@@ -139,7 +106,7 @@ var Atomic = (function(document, window) {
             }
         }
 
-        this.mouseEffect = function() {
+        this.mouseEffect = function(mousepos, moving, clicked) {
             var xrel = mousepos[0] - this._x;
             var yrel = mousepos[1] - this._y;
             var mouseDist = Math.sqrt(xrel * xrel + yrel * yrel);
@@ -176,13 +143,13 @@ var Atomic = (function(document, window) {
             }
             this._x += dt * this._xdot;
             this._y += dt * this._ydot;
-            if ((this._x + r) >= xmax && this._xdot > 0.0) {
+            if ((this._x + r) >= this._options.xmax && this._xdot > 0.0) {
                 this._xdot = -this._xdot;
             }
             if ((this._x - r) <= 0.0 && this._xdot < 0.0) {
                 this._xdot = -this._xdot;
             }
-            if ((this._y + r) >= ymax && this._ydot > 0.0) {
+            if ((this._y + r) >= this._options.ymax && this._ydot > 0.0) {
                 this._ydot = -this._ydot;
             }
             if ((this._y - r) <= 0.0 && this._ydot < 0.0) {
@@ -233,6 +200,7 @@ var Atomic = (function(document, window) {
     }
 
     function Atomic(options) {
+        // Options
         this._options = defaultOptions;
         if (options) {
             Object.keys(options).forEach(function(k) {
@@ -240,11 +208,50 @@ var Atomic = (function(document, window) {
             });
         }
 
+        // Initialize canvas
+        this._container = document.getElementById('atomic');
+        this._canvas = document.createElement('canvas');
+        this._canvas.width = this._container.clientWidth;
+        this._canvas.height = this._container.clientHeight;
+        this._container.appendChild(this._canvas);
+        this._ctx = this._canvas.getContext('2d');
+        this._xmax = this._canvas.width;
+        this._ymax = this._canvas.height;
+
+        // Mouse events
+        this._moving = false;
+        this._clicked = false;
+        this._mousepos = [0.0, 0.0];
+        var that = this;
+        document.addEventListener('mousemove', function(e) {
+            that._moving = true;
+            if (e.originalEvent) {
+                e = e.originalEvent;
+            }
+            var rect = that._canvas.getBoundingClientRect();
+            that._mousepos[0] = e.clientX - rect.left;
+            that._mousepos[1] = e.clientY - rect.top;
+            setTimeout(function() {
+                that._moving = false;
+            }, 1000);
+        });
+
+        document.addEventListener('click', function(e) {
+            var rect = that._canvas.getBoundingClientRect();
+            that._mousepos[0] = e.clientX - rect.left;
+            that._mousepos[1] = e.clientY - rect.top;
+            that._clicked = true;
+        });
+
+
+        this._options.xmax = this._xmax;
+        this._options.ymax = this._ymax;
+
         // Generate atoms
         this._atoms = new Array(this._options.numAtoms);
         for (var i = 0; i < this._options.numAtoms; ++i) {
-            var x = Math.random() * xmax;
-            var y = Math.random() * ymax;
+            var x = Math.random() * this._xmax;
+            var y = Math.random() * this._ymax;
             var xdot = Math.random() * this._options.vmax;
             var ydot = Math.random() * this._options.vmax;
             this._atoms[i] = new Circle(this._options.r, x, y, xdot, ydot, this._options);
@@ -252,30 +259,29 @@ var Atomic = (function(document, window) {
 
         // Render function
         this._dt = 1 / 10;
-        this._draw = function(ctx) {
+        this._draw = function() {
             for (var i = 0; i < this._options.numAtoms; ++i) {
                 this._atoms[i].clearArms();
                 this._atoms[i].clearHits();
             }
             for (var i = 0; i < this._options.numAtoms; ++i) {
-                this._atoms[i].mouseEffect();
+                this._atoms[i].mouseEffect(this._mousepos, this._moving, this._clicked);
+                this._clicked = false;
             }
             for (var i = 0; i < this._options.numAtoms; ++i) {
                 this._atoms[i].collisions(this._atoms);
             }
             for (var i = 0; i < this._options.numAtoms; ++i) {
-                this._atoms[i].renderArms(ctx, this._atoms);
+                this._atoms[i].renderArms(this._ctx, this._atoms);
             }
             for (var i = 0; i < this._options.numAtoms; ++i) {
-                this._atoms[i].render(this._dt, ctx);
+                this._atoms[i].render(this._dt, this._ctx);
             }
-            clicked = false;
         }.bind(this);
 
-        var that = this;
         (function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            that._draw(ctx);
+            that._ctx.clearRect(0, 0, that._canvas.width, that._canvas.height);
+            that._draw();
             window.requestAnimFrame(render);
         })();
     }
