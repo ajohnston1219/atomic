@@ -21,6 +21,7 @@ var Atomic = (function(document, window) {
     var xmax = canvas.width;
     var ymax = canvas.height;
     var clicked = false;
+    var moving = false;
     var mousepos = [0.0, 0.0];
 
     function color2Str(rgba) {
@@ -28,12 +29,16 @@ var Atomic = (function(document, window) {
     }
 
     document.addEventListener('mousemove', function(e) {
+        moving = true;
         if (e.originalEvent) {
             e = e.originalEvent;
         }
         var rect = canvas.getBoundingClientRect();
         mousepos[0] = e.clientX - rect.left;
         mousepos[1] = e.clientY - rect.top;
+        setTimeout(function() {
+            moving = false;
+        }, 1000);
     });
 
     document.addEventListener('click', function(e) {
@@ -138,7 +143,7 @@ var Atomic = (function(document, window) {
             var xrel = mousepos[0] - this._x;
             var yrel = mousepos[1] - this._y;
             var mouseDist = Math.sqrt(xrel * xrel + yrel * yrel);
-            if (mouseDist <= this._options.mouser) {
+            if (moving && mouseDist <= this._options.mouser) {
                 var theta = Math.atan2(yrel, xrel);
                 var vx = this._options.mousev * Math.cos(theta);
                 var vy = this._options.mousev * Math.sin(theta);
@@ -220,7 +225,7 @@ var Atomic = (function(document, window) {
         r: 2.0,
         vmax: 30.0,
         armlen: 100.0,
-        mouser: 10.0,
+        mouser: 100.0,
         mousev: 30.0,
         clickr: 300.0,
         amax: 30.0,
