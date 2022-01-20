@@ -137,7 +137,7 @@ var Atomic = (function(document, window) {
                     this._a = 0.0;
                 }
             }
-            if (this.vmag() > (2 * this._options.vmax)) {
+            if (this.vmag() > (this._options.vmax)) {
                 this._isAcc = true;
                 this._a = 0.0;
             }
@@ -190,13 +190,13 @@ var Atomic = (function(document, window) {
         atomColor: [155, 0, 255, 0.5],
         armColor: [200, 0, 155, 0.3],
         r: 2.0,
-        vmax: 30.0,
+        vmax: 3.0,
         armlen: 100.0,
         mouser: 100.0,
-        mousev: 30.0,
+        mousev: 3.0,
         clickr: 300.0,
-        amax: 30.0,
-        jerk: 6.0
+        amax: 3.0,
+        jerk: 1.0
     }
 
     function Atomic(options) {
